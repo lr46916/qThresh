@@ -82,10 +82,24 @@ void fill(int** data, int* row_size, int k, int value) {
     }
 }
 
+void print_array(int* data, int size) {
+    for(int i = 0; i < size; i++) {
+        printf("%d, ", data[i]);
+    }
+    printf("size: %d\n", size);
+}
+
+void print2D(int** data, int* row_size, int k) {
+    for(int i = 0; i < k; i++) {
+        print_array(data[i], row_size[i]);
+    }
+}
+
 int find_threshold(int* shape, int size, int m, int k) {
     
     if (m > 64 || size > m || k > size) {
         fprintf(stderr,"Invalid input arguments. shape size: %d, m: %d, k: %d\n", size, m, k);
+        exit(-1);
     }
 
     //to include k
@@ -115,11 +129,15 @@ int find_threshold(int* shape, int size, int m, int k) {
 
     int binCoefPrefSum[k];
 
+    binCoefPrefSum[0] = binCoef[0];
+
     for(int i = 1; i < k; i++) {
-        binCoefPrefSum[i] += binCoefPrefSum[i-1];
+        binCoefPrefSum[i] = binCoef[i] + binCoefPrefSum[i-1];
     }
 
     int array_size = binCoefPrefSum[k-1];
+
+    //printf("AS: %d\n", array_size);
 
     ullong* bit_mask_array = compute_bitmask_array(binCoef, k); 
     
@@ -130,20 +148,20 @@ int find_threshold(int* shape, int size, int m, int k) {
     }
 
     int **currentResult, **nextResult;
-    currentResult = malloc_int_arrays(binCoef, k); 
-    nextResult = malloc_int_arrays(binCoef, k);
-
-    for(int i = 0; i < array_size; i++) {
-        currentResult[i] = 0;
-    }
+    currentResult = malloc_int_arrays(binCoefPrefSum, k); 
+    nextResult = malloc_int_arrays(binCoefPrefSum, k);
+    
+    fill(currentResult, binCoefPrefSum, k, 0);
 
     ullong lastElemMaskNot = ~lastElemMask;
 
-    for(int i = 0; i < m; i++) {
+    for(int i = span; i < m; i++) {
         
-        //not sure about this...
-        fill(nextResult, binCoef, k, 0);
+        //TODO not sure about this...
+        fill(nextResult, binCoefPrefSum, k, 0);
 
+        //print2D(currentResult, binCoefPrefSum, k);
+            
         int offset = 0;
         for(int j = 0; j < k; j++) {
             int end = binCoefPrefSum[j];//offset + binCoef[j];
@@ -154,12 +172,22 @@ int find_threshold(int* shape, int size, int m, int k) {
                 if ((mask & lastElemMask) != 0) {
                     target_j--;
                 }
+                if(target_j == -1) {
+                    //TODO or continue to next value?
+                    target_j = 0;
+                }
                 ullong target_mask = (mask & lastElemMaskNot) << 1;
                 ullong target_mask2 = target_mask | 2LL;
                 int mask_ind = mask_to_index[target_mask];
                 int mask_ind2 = mask_to_index[target_mask2];
+                
+                if(mask_ind > binCoefPrefSum[target_j] || mask_ind2 > binCoefPrefSum[target_j]){
+                    //printf("mask_ind: %d, mask_ind2: %d, max: %d\n", mask_ind, mask_ind2, binCoefPrefSum[target_j]);
+                    //TODO what to do here?
+                    continue;
+                }
                 int hit = (shape_mask & (mask | 1LL)) ? 1 : 0;
-                nextResult[j][l] = min(currentResult[target_j][mask_ind2] + hit, currentResult[target_j][mask_ind]);                                     
+                nextResult[j][l] = min(currentResult[target_j][mask_ind2], currentResult[target_j][mask_ind]) + hit;                                     
             }
 
             offset = end;
@@ -190,3 +218,11 @@ int find_threshold(int* shape, int size, int m, int k) {
     return result;
 }
 
+int main() {
+    
+    int shape[12] = {0,1,2,4,7,8,9,11,14,15,16,18};
+
+    printf("result: %d\n", find_threshold(shape, 12, 50, 5));
+
+    return 0;
+}
