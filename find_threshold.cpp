@@ -125,21 +125,21 @@ int find_threshold(int* shape, int size, int m, int k) {
     
     ullong lastElemMask = 1LL << (span - 1);
 
-    int* binCoef = calculateBinomCoef(k, span);
+    int* bin_coef = calculateBinomCoef(k, span);
 
-    int binCoefPrefSum[k];
+    int bin_coef_pref_sum[k];
 
-    binCoefPrefSum[0] = binCoef[0];
+    bin_coef_pref_sum[0] = bin_coef[0];
 
     for(int i = 1; i < k; i++) {
-        binCoefPrefSum[i] = binCoef[i] + binCoefPrefSum[i-1];
+        bin_coef_pref_sum[i] = bin_coef[i] + bin_coef_pref_sum[i-1];
     }
 
-    int array_size = binCoefPrefSum[k-1];
+    int array_size = bin_coef_pref_sum[k-1];
 
     //printf("AS: %d\n", array_size);
 
-    ullong* bit_mask_array = compute_bitmask_array(binCoef, k); 
+    ullong* bit_mask_array = compute_bitmask_array(bin_coef, k); 
     
     unordered_map<ullong, int> mask_to_index;
 
@@ -147,24 +147,24 @@ int find_threshold(int* shape, int size, int m, int k) {
         mask_to_index[bit_mask_array[i]] = i;
     }
 
-    int **currentResult, **nextResult;
-    currentResult = malloc_int_arrays(binCoefPrefSum, k); 
-    nextResult = malloc_int_arrays(binCoefPrefSum, k);
+    int **current_result, **next_result;
+    current_result = malloc_int_arrays(bin_coef_pref_sum, k); 
+    next_result = malloc_int_arrays(bin_coef_pref_sum, k);
     
-    fill(currentResult, binCoefPrefSum, k, 0);
+    fill(current_result, bin_coef_pref_sum, k, 0);
 
     ullong lastElemMaskNot = ~lastElemMask;
 
     for(int i = span; i < m; i++) {
         
         //TODO not sure about this...
-        fill(nextResult, binCoefPrefSum, k, 0);
+        fill(next_result, bin_coef_pref_sum, k, 0);
 
-        //print2D(currentResult, binCoefPrefSum, k);
+        //print2D(current_result, bin_coef_pref_sum, k);
             
         int offset = 0;
         for(int j = 0; j < k; j++) {
-            int end = binCoefPrefSum[j];//offset + binCoef[j];
+            int end = bin_coef_pref_sum[j];//offset + bin_coef[j];
 
             for(int l = offset; l < end; l++) {
                 ullong mask = bit_mask_array[l];
@@ -181,39 +181,39 @@ int find_threshold(int* shape, int size, int m, int k) {
                 int mask_ind = mask_to_index[target_mask];
                 int mask_ind2 = mask_to_index[target_mask2];
                 
-                if(mask_ind > binCoefPrefSum[target_j] || mask_ind2 > binCoefPrefSum[target_j]){
-                    //printf("mask_ind: %d, mask_ind2: %d, max: %d\n", mask_ind, mask_ind2, binCoefPrefSum[target_j]);
+                if(mask_ind > bin_coef_pref_sum[target_j] || mask_ind2 > bin_coef_pref_sum[target_j]){
+                    //printf("mask_ind: %d, mask_ind2: %d, max: %d\n", mask_ind, mask_ind2, bin_coef_pref_sum[target_j]);
                     //TODO what to do here?
                     continue;
                 }
                 int hit = (shape_mask & (mask | 1LL)) ? 1 : 0;
-                nextResult[j][l] = min(currentResult[target_j][mask_ind2], currentResult[target_j][mask_ind]) + hit;                                     
+                next_result[j][l] = min(current_result[target_j][mask_ind2], current_result[target_j][mask_ind]) + hit;                                     
             }
 
             offset = end;
         }
 
-        int** tmp = currentResult;
-        currentResult = nextResult;
-        nextResult = tmp;
+        int** tmp = current_result;
+        current_result = next_result;
+        next_result = tmp;
     }
    
     int offset = 0;
     if(k > 1) 
-        offset = binCoefPrefSum[k-2];
+        offset = bin_coef_pref_sum[k-2];
 
-    int result = currentResult[k-1][offset];
+    int result = current_result[k-1][offset];
 
     for(int i = offset+1; i < array_size; i++) {
-        if(currentResult[k-1][i] < result) {
-            result = currentResult[k-1][i];
+        if(current_result[k-1][i] < result) {
+            result = current_result[k-1][i];
         }
     }
 
-    free_int_arrays(currentResult, k);
-    free_int_arrays(nextResult, k);
+    free_int_arrays(current_result, k);
+    free_int_arrays(next_result, k);
     free(bit_mask_array); 
-    free(binCoef);
+    free(bin_coef);
 
     return result;
 }
