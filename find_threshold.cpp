@@ -180,17 +180,13 @@ int findThreshold(int* shape, int size, int m, int k) {
 
     ullong lastElemMaskNot = ~lastElemMask;
 
-    //printf("data in map\n");
-
-    // for(auto it = maskToIndex.begin(); it != maskToIndex.end(); it++) {
-    //   printf("%lld -> %d\n", it->first, it->second);  
-    // }
-
     for(int i = span; i <= m; i++) {
-        
-        for(int j = 0; j < k; j++) {
-            int end = binCoefPrefSum[j];
 
+        //here we go through all values j and M to compute next iteration    
+        for(int j = 0; j < k; j++) {
+            //end is the index of last set that has at most j missmatches (all the sets that have at most j bits set to zero)
+            int end = binCoefPrefSum[j];
+    
             for(int l = 0; l < end; l++) {
                 ullong mask = bitMaskArray[l];
                 int targetJ = j;
@@ -201,7 +197,9 @@ int findThreshold(int* shape, int size, int m, int k) {
                     //TODO can be removed this will never happen
                     continue;
                 }
+                //mask in bottom line in paper recurrence
                 ullong targetMask = (mask & lastElemMaskNot) << 1;
+                //mask in top line in paper recurrence
                 ullong targetMask2 = targetMask | 2LL;
                 int maskInd = maskToIndex[targetMask];
                 int maskInd2 = maskToIndex[targetMask2];
@@ -209,7 +207,8 @@ int findThreshold(int* shape, int size, int m, int k) {
                 int hit = ((shape_mask & (mask | 1LL)) != 0 && (mask | 1LL) >= shape_mask) ? 1 : 0;
                 
                 int nextVal = maxInt;
-
+                
+                //if target mask has more then targetJ missmatches it is invalid
                 if(targetMask != 0 && maskInd < binCoefPrefSum[targetJ]){
                     nextVal = currentResult[targetJ][maskInd];
                 }
