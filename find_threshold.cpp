@@ -226,14 +226,14 @@ int findThreshold(int* shape, int size, int m, int k) {
                 }
 
                 if(maskInd2 != -1 && maskInd2 < binCoefPrefSum[targetJ]) {
-                    int val = currentResult[targetJ][maskInd2];
+                    int val = currentResult[targetJ][maskInd2] + hit;
                     if(val < nextVal)
                         nextVal = val;
                 }
 
                 if(nextVal != maxInt){
                     //printf("update with hit %d\n", hit);    
-                    nextResult[j][l] = nextVal + hit;   
+                    nextResult[j][l] = nextVal;// + hit;   
                 } else {
                     //TODO just for debugging. This case should never be triggered
                     printf("ERROR\n");
@@ -273,6 +273,5 @@ int main() {
     int shape[3] = {0,1,2};
 
     printf("result: %d\n", findThreshold(shape, 3, 8, 1));
-
     return 0;
 }
