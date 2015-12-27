@@ -24,8 +24,6 @@ ullong* computeBitmaskArray(int* binomCoefCount, int k, int s) {
 
     result = (ullong*) malloc(sizeof(ullong) * total);
     
-    ullong bot32Mask = (1LL << 32) - 1;
-    
     //in this loop we compute all masks. First we compute all sets
     //that have 0 missmatch, then 1 missmatch... and so on, up to k
     int c = 0;
@@ -39,15 +37,7 @@ ullong* computeBitmaskArray(int* binomCoefCount, int k, int s) {
             //we need to shift resut by one to the left in order to have 0-th element not set.
             result[c++] = ((~current) << 1) & resultMask;
             ullong tmp = current | (current - 1); 
-            int shift = 0;
-            uint input = (uint) current;
-            if ((bot32Mask & current) == 0) { 
-                input = (uint) (current >> 32);
-                shift = 32;
-            }
-            shift += __builtin_ctz(input) + 1;
-            
-            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> shift;
+            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (__builtin_ctzl(current) + 1);
         } 
     
     }
@@ -119,37 +109,22 @@ void print2D(int** data, int* rowSize, int k) {
     }
 }
 
-int findThreshold(int* shape, int size, int m, int k) {
+int findThreshold(ullong shapeMask, int m, int k){
     
-    if (m > 64 || k > m) {
-        fprintf(stderr,"Invalid input arguments. m: %d, k: %d\n", m, k);
-        exit(-1);
-    }
+    int span = -1;
 
+    for(int i = 63; i >= 0; i--) {
+        if((shapeMask & (1LL << i)) != 0) {
+            span = i + 1;
+            break;
+        }
+    }
+    
     //to include k
     k++;
 
     int maxInt = 2147483647;
 
-    //mask used check whether some other set M is a subset of shape.
-    ullong shape_mask = 0;
-
-    int min = shape[0];
-    int max = 0;
-
-    for(int i = 0; i < size; i++) {
-        shape_mask |= (1LL << shape[i]);
-        if (shape[i] > max) {
-            max = shape[i];
-        } else {
-            if(shape[i] < min) {
-                min = shape[i];
-            }
-        }
-    }
-
-    int span = max - min + 1;
-   
     ullong lastElemMask = 1LL << (span - 1);
 
     int* binCoef = calculateBinomCoef(k, span);
@@ -218,7 +193,7 @@ int findThreshold(int* shape, int size, int m, int k) {
 
                 ullong fullMask = mask | 1LL;
 
-                ullong xored = fullMask ^ shape_mask;
+                ullong xored = fullMask ^ shapeMask;
 
                 int hit = ((xored & ~fullMask) == 0) ? 1 : 0;
                 
@@ -268,15 +243,52 @@ int findThreshold(int* shape, int size, int m, int k) {
     return result;
 }
 
+int findThreshold(int* shape, int size, int m, int k) {
+    
+    if (m > 64 || k > m) {
+        fprintf(stderr,"Invalid input arguments. m: %d, k: %d\n", m, k);
+        exit(-1);
+    }
+
+    //mask used check whether some other set M is a subset of shape.
+    ullong shapeMask = 0;
+
+    int min = shape[0];
+    int max = 0;
+
+    for(int i = 0; i < size; i++) {
+        shapeMask |= (1LL << shape[i]);
+        if (shape[i] > max) {
+            max = shape[i];
+        } else {
+            if(shape[i] < min) {
+                min = shape[i];
+            }
+        }
+    }
+
+    return findThreshold(shapeMask, m, k);
+}
+
+
+
 int main() {
     
-    // int shape[12] = {0,2,4,8,14,16,18,22,28,30,32,36};
+    //int shape[12] = {0,2,4,8,14,16,18,22,28,30,32,36};
+
+    //int shape[12] = {0,1,2,4,7,8,9,11,14,15,16,18};
+
+    //printf("result: %d\n", findThreshold(shape, 12, 50, 5));
+
+    // int shape[3] = {0,1,2};
     //
-    // printf("result: %d\n", findThreshold(shape, 12, 50, 5));
+    // printf("result: %d\n", findThreshold(shape, 3, 8, 1));
 
-    int shape[3] = {0,1,2};
+    //int shape[7] = {0,1,4,13,23,24,27}; 
+    
+    int shape[13] = {0,1,2,3,4,5,6,7,8,10,11,12,13};
 
-    printf("result: %d\n", findThreshold(shape, 3, 8, 1));
+    printf("result: %d\n", findThreshold(shape,13,50,4));
 
     return 0;
 }
