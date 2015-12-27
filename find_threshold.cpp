@@ -121,8 +121,8 @@ void print2D(int** data, int* rowSize, int k) {
 
 int findThreshold(int* shape, int size, int m, int k) {
     
-    if (m > 64 || size > m || k > size) {
-        fprintf(stderr,"Invalid input arguments. shape size: %d, m: %d, k: %d\n", size, m, k);
+    if (m > 64 || k > m) {
+        fprintf(stderr,"Invalid input arguments. m: %d, k: %d\n", m, k);
         exit(-1);
     }
 
@@ -216,7 +216,11 @@ int findThreshold(int* shape, int size, int m, int k) {
                     maskInd2 = it2->second;
                 }
 
-                int hit = ((shape_mask & (mask | 1LL)) != 0 && (mask | 1LL) >= shape_mask) ? 1 : 0;
+                ullong fullMask = mask | 1LL;
+
+                ullong xored = fullMask ^ shape_mask;
+
+                int hit = ((xored & ~fullMask) == 0) ? 1 : 0;
                 
                 int nextVal = maxInt;
                 
@@ -273,5 +277,6 @@ int main() {
     int shape[3] = {0,1,2};
 
     printf("result: %d\n", findThreshold(shape, 3, 8, 1));
+
     return 0;
 }
