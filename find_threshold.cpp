@@ -253,18 +253,8 @@ int findThreshold(int* shape, int size, int m, int k) {
     //mask used check whether some other set M is a subset of shape.
     ullong shapeMask = 0;
 
-    int min = shape[0];
-    int max = 0;
-
     for(int i = 0; i < size; i++) {
         shapeMask |= (1LL << shape[i]);
-        if (shape[i] > max) {
-            max = shape[i];
-        } else {
-            if(shape[i] < min) {
-                min = shape[i];
-            }
-        }
     }
 
     return findThreshold(shapeMask, m, k);
