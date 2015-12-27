@@ -201,19 +201,31 @@ int findThreshold(int* shape, int size, int m, int k) {
                 ullong targetMask = (mask & lastElemMaskNot) << 1;
                 //mask in top line in paper recurrence
                 ullong targetMask2 = targetMask | 2LL;
-                int maskInd = maskToIndex[targetMask];
-                int maskInd2 = maskToIndex[targetMask2];
-                
+               
+                int maskInd = -1, maskInd2 = -1;
+
+                auto it = maskToIndex.find(targetMask);
+
+                if(it != maskToIndex.end()) {
+                    maskInd = it->second;                
+                }
+
+                auto it2 = maskToIndex.find(targetMask2);
+
+                if(it2 != maskToIndex.end()) {
+                    maskInd2 = it2->second;
+                }
+
                 int hit = ((shape_mask & (mask | 1LL)) != 0 && (mask | 1LL) >= shape_mask) ? 1 : 0;
                 
                 int nextVal = maxInt;
                 
                 //if target mask has more then targetJ missmatches it is invalid
-                if(targetMask != 0 && maskInd < binCoefPrefSum[targetJ]){
+                if(maskInd != -1 && maskInd < binCoefPrefSum[targetJ]){
                     nextVal = currentResult[targetJ][maskInd];
                 }
 
-                if(targetMask2 != 0 && maskInd2 < binCoefPrefSum[targetJ]) {
+                if(maskInd2 != -1 && maskInd2 < binCoefPrefSum[targetJ]) {
                     int val = currentResult[targetJ][maskInd2];
                     if(val < nextVal)
                         nextVal = val;
