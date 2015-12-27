@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <boost/math/special_functions/binomial.hpp>
 #include <unordered_map>
 #define min(x,y) x < y ? x : y
 
@@ -8,34 +7,44 @@ using namespace std;
 
 typedef unsigned long long ullong;
 
-ullong* compute_bitmask_array(int* binom_coef_count, int k) {
+//method used to compute all bit masks that are to be used in computation.
+//Returns a single array that contains all M sets that will need to be processed in
+//optimal threshold computation. Sets are sorted ascendingly by the number of missmatch.
+//Each element (bit) missing from the set is a missmatch.
+ullong* computeBitmaskArray(int* binomCoefCount, int k, int s) {
     
     ullong* result = NULL;
     
+    ullong resultMask = (1LL << s) - 1;
+
     int total = 0;
     for(int i = 0; i < k; i++) {
-        total += binom_coef_count[i];
+        total += binomCoefCount[i];
     }
 
     result = (ullong*) malloc(sizeof(ullong) * total);
     
-    ullong bot32_mask = (1LL << 32) - 1;
-
+    ullong bot32Mask = (1LL << 32) - 1;
+    
+    //in this loop we compute all masks. First we compute all sets
+    //that have 0 missmatch, then 1 missmatch... and so on, up to k
     int c = 0;
     for(int i = 0; i < k; i++) {
         
-        ullong current = 1LL << i;
-        current = current | (current - 1);
+        ullong current = (1LL << i) - 1;
+        //current = current | (current - 1);
 
-        for(int j = 0; j < binom_coef_count[i]; j++) {
-            result[c++] = (~current) << 1;
+        for(int j = 0; j < binomCoefCount[i]; j++) {
+            //we shift the result by one because sets contain elements [1,s-1], therefore
+            //we need to shift resut by one to the left in order to have 0-th element not set.
+            result[c++] = ((~current) << 1) & resultMask;
             ullong tmp = current | (current - 1); 
             int shift = 0;
             uint input = (uint) current;
-            if ((bot32_mask & current) == 0) { 
+            if ((bot32Mask & current) == 0) { 
                 input = (uint) (current >> 32);
                 shift = 32;
-            } 
+            }
             shift += __builtin_ctz(input) + 1;
             
             current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> shift;
@@ -46,56 +55,71 @@ ullong* compute_bitmask_array(int* binom_coef_count, int k) {
     return result;
 }
 
+//method used to calculate all (s-1) choose k values needed for the
+//computation.
 int* calculateBinomCoef(int k, int s) {
     
     int* result = (int*) malloc(sizeof(int) * k);
+    
+    result[0] = 1;
+    result[1] = s-1;
 
-    for(int i = 0; i < k; i++) {
-        result[i] = boost::math::binomial_coefficient<double>(s-1,i);
-    }
+    int top = s-1;
+    int bottom = 1;
+   
+    for(int i = 2; i < k; i++) {
+        top *= s - i;
+        bottom *= i;
+        result[i] = top / bottom;
+    } 
     
     return result;
 }
 
-int** malloc_int_arrays(int* row_size, int k){
+//method used to allocate 2D arrays for data storage.
+//total memory usage is O(f(m,k)) as defined in the paper.
+int** mallocIntArrays(int* rowSize, int k){
     
     int** result = (int**) malloc(sizeof(int*) * k);
 
     for(int i = 0; i < k; i++) {
-        result[i] = (int*) malloc(sizeof(int) * row_size[i]);
+        result[i] = (int*) malloc(sizeof(int) * rowSize[i]);
     }
     
     return result;
 }
 
-void free_int_arrays(int**data, int k) {
+//free...
+void freeIntArrays(int**data, int k) {
     for(int i = 0; i < k; i++) {
         free(data[i]);
     }
 }
 
-void fill(int** data, int* row_size, int k, int value) {
+//fill all elements of 2D array with given value 
+//@param data 2D array to fill
+void fill(int** data, int* rowSize, int k, int value) {
     for(int i = 0; i < k; i++) {
-        for(int j = 0; j < row_size[i]; j++) {
+        for(int j = 0; j < rowSize[i]; j++) {
             data[i][j] = value;
         }
     }
 }
 
-void print_array(int* data, int size) {
+void printArray(int* data, int size) {
     for(int i = 0; i < size; i++) {
         printf("%d, ", data[i]);
     }
     printf("size: %d\n", size);
 }
 
-void print2D(int** data, int* row_size, int k) {
+void print2D(int** data, int* rowSize, int k) {
     for(int i = 0; i < k; i++) {
-        print_array(data[i], row_size[i]);
+        printArray(data[i], rowSize[i]);
     }
 }
 
-int find_threshold(int* shape, int size, int m, int k) {
+int findThreshold(int* shape, int size, int m, int k) {
     
     if (m > 64 || size > m || k > size) {
         fprintf(stderr,"Invalid input arguments. shape size: %d, m: %d, k: %d\n", size, m, k);
@@ -105,6 +129,9 @@ int find_threshold(int* shape, int size, int m, int k) {
     //to include k
     k++;
 
+    int maxInt = 2147483647;
+
+    //mask used check whether some other set M is a subset of shape.
     ullong shape_mask = 0;
 
     int min = shape[0];
@@ -122,107 +149,119 @@ int find_threshold(int* shape, int size, int m, int k) {
     }
 
     int span = max - min + 1;
-    
+   
     ullong lastElemMask = 1LL << (span - 1);
 
-    int* bin_coef = calculateBinomCoef(k, span);
+    int* binCoef = calculateBinomCoef(k, span);
 
-    int bin_coef_pref_sum[k];
+    int binCoefPrefSum[k];
 
-    bin_coef_pref_sum[0] = bin_coef[0];
+    binCoefPrefSum[0] = binCoef[0];
 
     for(int i = 1; i < k; i++) {
-        bin_coef_pref_sum[i] = bin_coef[i] + bin_coef_pref_sum[i-1];
+        binCoefPrefSum[i] = binCoef[i] + binCoefPrefSum[i-1];
     }
 
-    int array_size = bin_coef_pref_sum[k-1];
+    int arraySize = binCoefPrefSum[k-1];
 
-    //printf("AS: %d\n", array_size);
-
-    ullong* bit_mask_array = compute_bitmask_array(bin_coef, k); 
+    ullong* bitMaskArray = computeBitmaskArray(binCoef, k, span); 
     
-    unordered_map<ullong, int> mask_to_index;
+    unordered_map<ullong, int> maskToIndex;
 
-    for(int i = 0; i < array_size; i++) {
-        mask_to_index[bit_mask_array[i]] = i;
+    for(int i = 0; i < arraySize; i++) {
+        maskToIndex[bitMaskArray[i]] = i;
     }
-
-    int **current_result, **next_result;
-    current_result = malloc_int_arrays(bin_coef_pref_sum, k); 
-    next_result = malloc_int_arrays(bin_coef_pref_sum, k);
     
-    fill(current_result, bin_coef_pref_sum, k, 0);
+    int **currentResult, **nextResult;
+    currentResult = mallocIntArrays(binCoefPrefSum, k); 
+    nextResult = mallocIntArrays(binCoefPrefSum, k);
+    
+    fill(currentResult, binCoefPrefSum, k, 0);
 
     ullong lastElemMaskNot = ~lastElemMask;
 
-    for(int i = span; i < m; i++) {
+    //printf("data in map\n");
+
+    // for(auto it = maskToIndex.begin(); it != maskToIndex.end(); it++) {
+    //   printf("%lld -> %d\n", it->first, it->second);  
+    // }
+
+    for(int i = span; i <= m; i++) {
         
-        //TODO not sure about this...
-        fill(next_result, bin_coef_pref_sum, k, 0);
-
-        //print2D(current_result, bin_coef_pref_sum, k);
-            
-        int offset = 0;
         for(int j = 0; j < k; j++) {
-            int end = bin_coef_pref_sum[j];//offset + bin_coef[j];
+            int end = binCoefPrefSum[j];
 
-            for(int l = offset; l < end; l++) {
-                ullong mask = bit_mask_array[l];
-                int target_j = j;
-                if ((mask & lastElemMask) != 0) {
-                    target_j--;
+            for(int l = 0; l < end; l++) {
+                ullong mask = bitMaskArray[l];
+                int targetJ = j;
+                if ((mask & lastElemMask) == 0) {
+                    targetJ--;
                 }
-                if(target_j == -1) {
-                    //TODO or continue to next value?
-                    target_j = 0;
-                }
-                ullong target_mask = (mask & lastElemMaskNot) << 1;
-                ullong target_mask2 = target_mask | 2LL;
-                int mask_ind = mask_to_index[target_mask];
-                int mask_ind2 = mask_to_index[target_mask2];
-                
-                if(mask_ind > bin_coef_pref_sum[target_j] || mask_ind2 > bin_coef_pref_sum[target_j]){
-                    //printf("mask_ind: %d, mask_ind2: %d, max: %d\n", mask_ind, mask_ind2, bin_coef_pref_sum[target_j]);
-                    //TODO what to do here?
+                if(targetJ == -1) {
+                    //TODO can be removed this will never happen
                     continue;
                 }
-                int hit = (shape_mask & (mask | 1LL)) ? 1 : 0;
-                next_result[j][l] = min(current_result[target_j][mask_ind2], current_result[target_j][mask_ind]) + hit;                                     
+                ullong targetMask = (mask & lastElemMaskNot) << 1;
+                ullong targetMask2 = targetMask | 2LL;
+                int maskInd = maskToIndex[targetMask];
+                int maskInd2 = maskToIndex[targetMask2];
+                
+                int hit = ((shape_mask & (mask | 1LL)) != 0 && (mask | 1LL) >= shape_mask) ? 1 : 0;
+                
+                int nextVal = maxInt;
+
+                if(targetMask != 0 && maskInd < binCoefPrefSum[targetJ]){
+                    nextVal = currentResult[targetJ][maskInd];
+                }
+
+                if(targetMask2 != 0 && maskInd2 < binCoefPrefSum[targetJ]) {
+                    int val = currentResult[targetJ][maskInd2];
+                    if(val < nextVal)
+                        nextVal = val;
+                }
+
+                if(nextVal != maxInt){
+                    //printf("update with hit %d\n", hit);    
+                    nextResult[j][l] = nextVal + hit;   
+                } else {
+                    //TODO just for debugging. This case should never be triggered
+                    printf("ERROR\n");
+                    exit(-1);
+                } 
             }
 
-            offset = end;
         }
 
-        int** tmp = current_result;
-        current_result = next_result;
-        next_result = tmp;
+        int** tmp = currentResult;
+        currentResult = nextResult;
+        nextResult = tmp;
     }
    
-    int offset = 0;
-    if(k > 1) 
-        offset = bin_coef_pref_sum[k-2];
+    int result = currentResult[k-1][0];
 
-    int result = current_result[k-1][offset];
-
-    for(int i = offset+1; i < array_size; i++) {
-        if(current_result[k-1][i] < result) {
-            result = current_result[k-1][i];
+    for(int i = 1; i < arraySize; i++) {
+        if(currentResult[k-1][i] < result) {
+            result = currentResult[k-1][i];
         }
     }
 
-    free_int_arrays(current_result, k);
-    free_int_arrays(next_result, k);
-    free(bit_mask_array); 
-    free(bin_coef);
+    freeIntArrays(currentResult, k);
+    freeIntArrays(nextResult, k);
+    free(bitMaskArray); 
+    free(binCoef);
 
     return result;
 }
 
 int main() {
     
-    int shape[12] = {0,1,2,4,7,8,9,11,14,15,16,18};
+    // int shape[12] = {0,2,4,8,14,16,18,22,28,30,32,36};
+    //
+    // printf("result: %d\n", findThreshold(shape, 12, 50, 5));
 
-    printf("result: %d\n", find_threshold(shape, 12, 50, 5));
+    int shape[3] = {0,1,2};
+
+    printf("result: %d\n", findThreshold(shape, 3, 8, 1));
 
     return 0;
 }
