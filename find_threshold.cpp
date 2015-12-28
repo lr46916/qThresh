@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unordered_map>
+#include <vector>
+#include <list>
+#include <unordered_set>
+#include <algorithm>
+#include <map>
+#include <iostream>
+#include <fstream>
 #define min(x,y) x < y ? x : y
 
 using namespace std;
@@ -84,6 +91,17 @@ void freeIntArrays(int**data, int k) {
     for(int i = 0; i < k; i++) {
         free(data[i]);
     }
+    free(data);
+}
+
+int** mallocNeighbourhoodData(int size) {
+    int **result = (int**) malloc(sizeof(int*) * size);
+
+    for(int i = 0; i < size; i++) {
+        result[i] = (int*) malloc(sizeof(int) * 2);
+    }
+
+    return result;
 }
 
 //fill all elements of 2D array with given value 
@@ -119,7 +137,11 @@ int findThreshold(ullong shapeMask, int m, int k){
             break;
         }
     }
-    
+   
+    if(span == 1) {
+        return m - 1;
+    }
+
     //to include k
     k++;
 
@@ -141,10 +163,39 @@ int findThreshold(ullong shapeMask, int m, int k){
 
     ullong* bitMaskArray = computeBitmaskArray(binCoef, k, span); 
     
+    //TODO or unordered_map? could be small enough so map makes sense
     unordered_map<ullong, int> maskToIndex;
 
     for(int i = 0; i < arraySize; i++) {
         maskToIndex[bitMaskArray[i]] = i;
+    }
+
+    ullong lastElemMaskNot = ~lastElemMask;
+
+    int **maskNgs = mallocNeighbourhoodData(arraySize);
+    for(int i = 0; i < arraySize; i++) {
+        ullong mask = bitMaskArray[i];
+        //mask in bottom line in paper recurrence
+        ullong targetMask = (mask & lastElemMaskNot) << 1;
+        //mask in top line in paper recurrence
+        ullong targetMask2 = targetMask | 2LL;
+        
+        int maskInd = -1, maskInd2 = -1;
+
+        auto it = maskToIndex.find(targetMask);
+
+        if(it != maskToIndex.end()) {
+            maskInd = it->second;                
+        }
+
+        auto it2 = maskToIndex.find(targetMask2);
+
+        if(it2 != maskToIndex.end()) {
+            maskInd2 = it2->second;
+        }
+
+        maskNgs[i][0] = maskInd;
+        maskNgs[i][1] = maskInd2;
     }
     
     int **currentResult, **nextResult;
@@ -152,8 +203,6 @@ int findThreshold(ullong shapeMask, int m, int k){
     nextResult = mallocIntArrays(binCoefPrefSum, k);
     
     fill(currentResult, binCoefPrefSum, k, 0);
-
-    ullong lastElemMaskNot = ~lastElemMask;
 
     for(int i = span; i <= m; i++) {
 
@@ -172,31 +221,16 @@ int findThreshold(ullong shapeMask, int m, int k){
                     //TODO can be removed this will never happen
                     continue;
                 }
-                //mask in bottom line in paper recurrence
-                ullong targetMask = (mask & lastElemMaskNot) << 1;
-                //mask in top line in paper recurrence
-                ullong targetMask2 = targetMask | 2LL;
-               
-                int maskInd = -1, maskInd2 = -1;
-
-                auto it = maskToIndex.find(targetMask);
-
-                if(it != maskToIndex.end()) {
-                    maskInd = it->second;                
-                }
-
-                auto it2 = maskToIndex.find(targetMask2);
-
-                if(it2 != maskToIndex.end()) {
-                    maskInd2 = it2->second;
-                }
-
+                               
                 ullong fullMask = mask | 1LL;
 
                 ullong xored = fullMask ^ shapeMask;
 
                 int hit = ((xored & ~fullMask) == 0) ? 1 : 0;
                 
+                int maskInd = maskNgs[l][0];
+                int maskInd2 = maskNgs[l][1];
+
                 int nextVal = maxInt;
                 
                 //if target mask has more then targetJ missmatches it is invalid
@@ -234,9 +268,10 @@ int findThreshold(ullong shapeMask, int m, int k){
             result = currentResult[k-1][i];
         }
     }
-
+    
     freeIntArrays(currentResult, k);
     freeIntArrays(nextResult, k);
+    freeIntArrays(maskNgs,arraySize);
     free(bitMaskArray); 
     free(binCoef);
 
@@ -260,10 +295,82 @@ int findThreshold(int* shape, int size, int m, int k) {
     return findThreshold(shapeMask, m, k);
 }
 
+void findAllPositiveThreshShapes(int m, int k){
 
+    //vector<ullong> *result = new vector<ullong>();
+
+    FILE *f = fopen("result.txt", "w"); 
+
+    unordered_set<ullong> *current = new unordered_set<ullong>(); 
+    unordered_set<ullong> *next = new unordered_set<ullong>();
+    
+    unordered_set<ullong> negatives;
+
+    next->insert(1LL);
+
+    while(!next->empty()){
+        // printf("next...\n");
+        // for(ullong bla : *next) {
+        //     for(int i = m-1; i >= 0; i--) {
+        //         if((bla & (1LL << i)) != 0) {
+        //             printf("1");
+        //         } else {
+        //             printf("0");
+        //         }
+        //     }
+        //     printf(", ");
+        // }
+        // printf("\n");
+
+        // if(c++ == m) {
+        //     break;
+        // }
+        printf("next.. size: %d\n", (int) next->size());
+        
+        unordered_set<ullong> *tmp = next;
+        next = current;
+        current = tmp;
+
+        negatives.clear();
+
+        for(ullong mask : *current) {            
+            //printf("computing threshold for mask... %lld\n", mask);
+            int ts = findThreshold(mask, m, k);
+            if(ts > 0) {
+                fprintf(f, "%lld\n", mask);
+            }
+            for(int i = 0; i < m; i++) {
+                ullong tmp = (1LL << i);
+                if((tmp & mask) == 0) {
+                    ullong nextMask = mask | tmp;
+                    // if(nextMask == 7) {
+                    //     printf("rootmask %lld, nextMask %lld, rootTS: %d\n", mask, nextMask, ts);
+                    // }
+                    if(ts == 0) {
+                        next->erase(nextMask);
+                        negatives.insert(nextMask);
+                    } else {
+                        if(negatives.find(nextMask) == negatives.end()) {
+                            next->insert(nextMask);
+                        }
+                    }
+                }
+                        
+            }
+        }
+        current->clear();
+
+    }
+
+    delete(next);
+    delete(current);
+
+    fclose(f);
+    
+}
 
 int main() {
-    
+   
     //int shape[12] = {0,2,4,8,14,16,18,22,28,30,32,36};
 
     //int shape[12] = {0,1,2,4,7,8,9,11,14,15,16,18};
@@ -276,9 +383,11 @@ int main() {
 
     //int shape[7] = {0,1,4,13,23,24,27}; 
     
-    int shape[13] = {0,1,2,3,4,5,6,7,8,10,11,12,13};
-
-    printf("result: %d\n", findThreshold(shape,13,50,4));
-
+    // int shape[13] = {0,1,2,3,4,5,6,7,8,10,11,12,13};
+    //
+    // printf("result: %d\n", findThreshold(shape,13,50,4));
+   
+    findAllPositiveThreshShapes(50,5);
+    
     return 0;
 }
