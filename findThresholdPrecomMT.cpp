@@ -402,7 +402,7 @@ int main(){
             counter++;
             ullong mask = res.shape;
             if(ts > 0)
-                fprintf(f, "%lld\n", mask);
+                fprintf(f, "%lld %d\n", mask, ts);
             for(int i = 0; i < m; i++) {
                 ullong tmp = (1LL << i);
                 if((tmp & mask) == 0) {
