@@ -8,13 +8,22 @@ using namespace std;
 typedef pair<size_t, size_t> hit;
 
 
-vector<size_t> find_potetntial_matches(string& T, string& P, vector<hit> hit_list, size_t t)
+vector<size_t> find_potetntial_matches(string& T, string& P, vector<hit> hit_list, size_t t, size_t q_span)
 {
 
 	vector<size_t> potential_matches;
 
-
 	size_t array_size = T.size()+P.size()+1;
+	size_t hit_size = hit_list.size();
+
+	int array[array_size];
+
+	for(int i = 0; i < array_size; i++){	//change to working precomputation -.-
+		for (int j = 0; j < hit_size; j++){
+
+		}
+
+	}
 
 	size_t pattern_index_array[array_size];
 
@@ -74,7 +83,7 @@ int main(){
 
 	vector<size_t> potential_matches;
 
-	potential_matches=find_potetntial_matches(T,P,hit_list,t);
+	potential_matches=find_potetntial_matches(T,P,hit_list,t,q_span);
 
 	verify_potential_matches(T,P,potential_matches,k);
 
