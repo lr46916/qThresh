@@ -13,8 +13,10 @@
 #include <boost/lockfree/queue.hpp>
 #include <time.h>
 #include <ctime>
+#include <climits>
 
 #define min(x,y) x < y ? x : y
+#define NTHREADS 8
 
 using namespace std;
 
@@ -50,7 +52,7 @@ ullong* computeBitmaskArray(int* binomCoefCount, int k, int s) {
             //we need to shift resut by one to the left in order to have 0-th element not set.
             result[c++] = ((~current) << 1) & resultMask;
             ullong tmp = current | (current - 1); 
-            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (__builtin_ctzl(current) + 1);
+            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (__builtin_ctzll(current) + 1);
         } 
     
     }
@@ -233,8 +235,6 @@ int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** b
     int** maskNgs = maskNgsData[span-2];
     ullong* bitMaskArray = bitMaskArrayData[span-2];
 
-    int maxInt = 2147483647;
-
     ullong lastElemMask = 1LL << (span - 1);
 
     int* binCoef = calculateBinomCoef(k, span);
@@ -282,7 +282,7 @@ int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** b
                 int maskInd = maskNgs[l][0];
                 int maskInd2 = maskNgs[l][1];
 
-                int nextVal = maxInt;
+                int nextVal = INT_MAX;
                 
                 //if target mask has more then targetJ missmatches it is invalid
                 if(maskInd != -1 && maskInd < binCoefPrefSum[targetJ]){
@@ -295,7 +295,7 @@ int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** b
                         nextVal = val;
                 }
 
-                if(nextVal != maxInt){
+                if(nextVal != INT_MAX){
                     //printf("update with hit %d\n", hit);    
                     nextResult[j][l] = nextVal;// + hit;   
                 } else {
@@ -364,7 +364,7 @@ int main(){
 
     boost::thread_group workerThreads; 
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < NTHREADS; i++) {
         workerThreads.create_thread(worker);
     }
 
@@ -430,7 +430,7 @@ int main(){
     delete(next);
     delete(current);
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < NTHREADS; i++) {
         while(!workerQueue.push(0LL));
     }
     
