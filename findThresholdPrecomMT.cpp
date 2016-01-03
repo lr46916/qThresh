@@ -17,6 +17,7 @@
 #include "clzll_ctzll.hpp"
 
 #define min(x,y) x < y ? x : y
+#define NTHREADS 3
 
 using namespace std;
 
@@ -171,8 +172,6 @@ int** precomuteBinCoefPrefSumData(int span, int k, int** binCoefData) {
 
     return result;
 }
-
-
 
 ullong** precomputeSpanBitMaskArrays(int span, int k, int** binCoefData) {
 
@@ -394,13 +393,11 @@ int main(){
 
     FILE *f = fopen("result.txt", "w"); 
 
-    int numberOfWorkers = 3;
-
-    preallocatedDataStorage = preallocateDataArraysForDP(k,binCoefPrefSumData[m-2], numberOfWorkers);
+    preallocatedDataStorage = preallocateDataArraysForDP(k,binCoefPrefSumData[m-2], NTHREADS);
 
     boost::thread_group workerThreads; 
 
-    for(int i = 0; i < numberOfWorkers; i++) {
+    for(int i = 0; i < NTHREADS; i++) {
         workerThreads.create_thread(boost::bind(worker,i));
     }
 
@@ -463,7 +460,7 @@ int main(){
 
     }
 
-    for(int i = 0; i < numberOfWorkers; i++) {
+    for(int i = 0; i < NTHREADS; i++) {
         while(!workerQueue.push(0LL));
     }
     
