@@ -14,7 +14,6 @@
 #include <time.h>
 #include <ctime>
 #include <limits.h>
-#include "clzll_ctzll.hpp"
 
 #define min(x,y) x < y ? x : y
 #define NTHREADS 3
@@ -53,7 +52,7 @@ ullong* computeBitmaskArray(int* binomCoefCount, int k, int s) {
             //we need to shift resut by one to the left in order to have 0-th element not set.
             result[c++] = ((~current) << 1) & resultMask;
             ullong tmp = current | (current - 1); 
-            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (ctzll(current) + 1);
+            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (__builtin_ctzll(current) + 1);
         } 
     
     }
@@ -256,7 +255,7 @@ int*** preallocateDataArraysForDP(int k, int* maxBinCoefPrefSum, int numberOfThr
 
 int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** bitMaskArrayData, int** prefixSums, int*** preallocatedDataStorage, int tid){
     
-    int span = 64 - clzll(shapeMask);
+    int span = 64 - __builtin_clzll(shapeMask);
 
     if(span == 1) {
         return m - 1;
