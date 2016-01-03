@@ -13,6 +13,8 @@
 #include <boost/lockfree/queue.hpp>
 #include <time.h>
 #include <ctime>
+#include <limits.h>
+#include "clzll_ctzll.hpp"
 
 #define min(x,y) x < y ? x : y
 
@@ -50,7 +52,7 @@ ullong* computeBitmaskArray(int* binomCoefCount, int k, int s) {
             //we need to shift resut by one to the left in order to have 0-th element not set.
             result[c++] = ((~current) << 1) & resultMask;
             ullong tmp = current | (current - 1); 
-            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (__builtin_ctzl(current) + 1);
+            current = (tmp + 1) | (((~tmp & -~tmp) - 1)) >> (ctzll(current) + 1);
         } 
     
     }
@@ -93,7 +95,8 @@ int** mallocIntArrays(int* rowSize, int k){
 }
 
 //free...
-void freeIntArrays(int**data, int k) {
+template<typename T>
+void free2DArray(T **data, int k) {
     for(int i = 0; i < k; i++) {
         free(data[i]);
     }
@@ -133,39 +136,66 @@ void print2D(int** data, int* rowSize, int k) {
     }
 }
 
+//Precomputation methods start here
+int** precomputeBinCoefData(int span, int k) {
+    
+    int** result = (int**) malloc((span-1) * sizeof(int*));
 
-ullong** precomputeSpanBitMaskArrays(int span, int k) {
+    for(int i = 0; i < span - 1; i++) {
+        
+        int targetSpan = i + 2;
+
+        int *binCoef = calculateBinomCoef(k, targetSpan);
+        
+        result[i] = binCoef;
+    }
+    
+    return result;
+}
+
+int** precomuteBinCoefPrefSumData(int span, int k, int** binCoefData) {
+    int** result = (int**) malloc((span-1) * sizeof(int*));
+
+    for(int i = 0; i < span - 1; i++) {
+    
+        int *prefixSum = (int*) malloc(sizeof(int) * (k+1));
+
+        prefixSum[0] = binCoefData[i][0];
+
+        for(int j = 1; j <= k; j++) {
+            prefixSum[j] = binCoefData[i][j] + prefixSum[j-1];
+        }
+
+        result[i] = prefixSum;
+    }
+
+    return result;
+}
+
+
+
+ullong** precomputeSpanBitMaskArrays(int span, int k, int** binCoefData) {
 
     ullong** result = (ullong**) malloc((span - 1) * sizeof(ullong*));
 
     for(int i = 0; i < span - 1; i++) {
         int targetSpan = i + 2;
 
-        int* binCoef = calculateBinomCoef(k, targetSpan);
+        int* binCoef = binCoefData[i];
 
         result[i] = computeBitmaskArray(binCoef, k, targetSpan); 
-       
-        free(binCoef);
     }
 
     return result;
 }
 
-int*** precomputeMaskNeighbourhoodMap(int span, int k, ullong** bitMaskArray) {
+int*** precomputeMaskNeighbourhoodMap(int span, int k, ullong** bitMaskArray, int** binCoefPrefSum) {
     
     int*** result = (int***) malloc(sizeof(int**) * (span-1));
-
     
     for(int i = 0; i < span - 1; i++) {
         int targetSpan = i + 2;
-        int* binCoef = calculateBinomCoef(k, targetSpan);
-        int arraySize = 0;
-        for(int j = 0; j <= k; j++) {
-            arraySize += binCoef[j];
-        }
-        free(binCoef);
-        
-        printf("computing for span %d...\n", targetSpan);
+        int arraySize = binCoefPrefSum[i][k];
         
         unordered_map<ullong, int> maskToIndex;
 
@@ -213,45 +243,39 @@ int*** precomputeMaskNeighbourhoodMap(int span, int k, ullong** bitMaskArray) {
     return result;
 }
 
-int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** bitMaskArrayData){
+int*** preallocateDataArraysForDP(int k, int* maxBinCoefPrefSum, int numberOfThreads) {
     
-    int span = -1;
+    int*** result = (int***) malloc(sizeof(int**) * 2 * numberOfThreads);
 
-    for(int i = 63; i >= 0; i--) {
-        if((shapeMask & (1LL << i)) != 0) {
-            span = i + 1;
-            break;
-        }
+    for(int i = 0; i < numberOfThreads * 2; i++) {
+        result[i] = mallocIntArrays(maxBinCoefPrefSum, k+1); 
     }
-   
+
+    return result;
+}
+//Precomputation methods end here
+
+int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** bitMaskArrayData, int** prefixSums, int*** preallocatedDataStorage, int tid){
+    
+    int span = 64 - clzll(shapeMask);
+
     if(span == 1) {
         return m - 1;
     }
 
-    //printf("shape span: %d, shape itself: %lld\n", span, shapeMask);
-
     int** maskNgs = maskNgsData[span-2];
     ullong* bitMaskArray = bitMaskArrayData[span-2];
 
-    int maxInt = 2147483647;
-
     ullong lastElemMask = 1LL << (span - 1);
 
-    int* binCoef = calculateBinomCoef(k, span);
-
-    int binCoefPrefSum[k+1];
-
-    binCoefPrefSum[0] = binCoef[0];
-
-    for(int i = 1; i <= k; i++) {
-        binCoefPrefSum[i] = binCoef[i] + binCoefPrefSum[i-1];
-    }
+    int *binCoefPrefSum = prefixSums[span-2];
 
     int arraySize = binCoefPrefSum[k];
 
     int **currentResult, **nextResult;
-    currentResult = mallocIntArrays(binCoefPrefSum, k+1); 
-    nextResult = mallocIntArrays(binCoefPrefSum, k+1);
+
+    currentResult = preallocatedDataStorage[tid*2]; 
+    nextResult = preallocatedDataStorage[tid*2+1];
     
     fill(currentResult, binCoefPrefSum, k+1, 0);
 
@@ -282,7 +306,7 @@ int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** b
                 int maskInd = maskNgs[l][0];
                 int maskInd2 = maskNgs[l][1];
 
-                int nextVal = maxInt;
+                int nextVal = INT_MAX;
                 
                 //if target mask has more then targetJ missmatches it is invalid
                 if(maskInd != -1 && maskInd < binCoefPrefSum[targetJ]){
@@ -295,7 +319,7 @@ int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** b
                         nextVal = val;
                 }
 
-                if(nextVal != maxInt){
+                if(nextVal != INT_MAX){
                     //printf("update with hit %d\n", hit);    
                     nextResult[j][l] = nextVal;// + hit;   
                 } else {
@@ -322,10 +346,6 @@ int findThreshold(ullong shapeMask, int m, int k, int*** maskNgsData, ullong** b
         }
     }
     
-    freeIntArrays(currentResult, k+1);
-    freeIntArrays(nextResult, k+1);
-    free(binCoef);
-
     return result;
 }
 
@@ -334,22 +354,25 @@ struct Pair {
     int threshold;
 };
 
-boost::lockfree::queue<ullong> workerQueue(0);
+boost::lockfree::queue<ullong> workerQueue(1000);
 
-boost::lockfree::queue<struct Pair> resultQueue(0);
+boost::lockfree::queue<struct Pair> resultQueue(1000);
 
-int m = 50, k = 5;
-ullong** bitMaskArrays = precomputeSpanBitMaskArrays(m, k);
-int*** maskNgs = precomputeMaskNeighbourhoodMap(m,k,bitMaskArrays);
+int m = -1, k = -1;
 
-void worker(void) {
+int** binCoefPrefSumData;
+ullong** bitMaskArrays; //= precomputeSpanBitMaskArrays(m, k);
+int*** maskNgs; //precomputeMaskNeighbourhoodMap(m,k,bitMaskArrays);
+int*** preallocatedDataStorage;
+
+void worker(int id) {
     ullong killCond = 0LL;
     while(true) {
         ullong shape;
         while(!workerQueue.pop(shape));
         if(shape == killCond)
             break;
-        int result = findThreshold(shape, m, k, maskNgs, bitMaskArrays);
+        int result = findThreshold(shape, m, k, maskNgs, bitMaskArrays, binCoefPrefSumData, preallocatedDataStorage, id);
         struct Pair res;
         res.shape = shape;
         res.threshold = result;
@@ -359,19 +382,32 @@ void worker(void) {
 }
 
 int main(){
+ 
+    m = 50;
+    k = 5;
     
+    int** binCoefData = precomputeBinCoefData(m,k);
+    binCoefPrefSumData = precomuteBinCoefPrefSumData(m,k,binCoefData);
+    bitMaskArrays = precomputeSpanBitMaskArrays(m,k,binCoefData);
+    maskNgs = precomputeMaskNeighbourhoodMap(m,k,bitMaskArrays, binCoefPrefSumData);
+    free2DArray(binCoefData, m-1);
+
     FILE *f = fopen("result.txt", "w"); 
+
+    int numberOfWorkers = 3;
+
+    preallocatedDataStorage = preallocateDataArraysForDP(k,binCoefPrefSumData[m-2], numberOfWorkers);
 
     boost::thread_group workerThreads; 
 
-    for(int i = 0; i < 4; i++) {
-        workerThreads.create_thread(worker);
+    for(int i = 0; i < numberOfWorkers; i++) {
+        workerThreads.create_thread(boost::bind(worker,i));
     }
 
     unordered_set<ullong> *current = new unordered_set<ullong>(); 
     unordered_set<ullong> *next = new unordered_set<ullong>();
     
-    unordered_set<ullong> negatives;
+    unordered_set<ullong> *negatives = new unordered_set<ullong>();
 
     next->insert(1LL);
 
@@ -379,12 +415,12 @@ int main(){
 
     while(!next->empty()){
         printf("next.. size: %d, computed thresholds so far: %d\n", (int) next->size(), counter);
-        
+
         unordered_set<ullong> *tmp = next;
         next = current;
         current = tmp;
 
-        negatives.clear();
+        negatives->clear();
 
         int c = 0;
 
@@ -412,9 +448,9 @@ int main(){
                     // }
                     if(ts == 0) {
                         next->erase(nextMask);
-                        negatives.insert(nextMask);
+                        negatives->insert(nextMask);
                     } else {
-                        if(negatives.find(nextMask) == negatives.end()) {
+                        if(negatives->find(nextMask) == negatives->end()) {
                             next->insert(nextMask);
                         }
                     }
@@ -427,15 +463,24 @@ int main(){
 
     }
 
-    delete(next);
-    delete(current);
-
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < numberOfWorkers; i++) {
         while(!workerQueue.push(0LL));
     }
     
     workerThreads.join_all();
 
     fclose(f);
+    
+    //free everything...
+    delete(next);
+    delete(current);
+    delete(negatives);
+    for(int i = 0; i < m - 1; i++) {
+        free2DArray(maskNgs[i], binCoefPrefSumData[i][k]);
+    }
+    free(maskNgs);
+    free2DArray(bitMaskArrays, m-1);
+    free2DArray(binCoefPrefSumData, m-1);
+
     return 0;
 }
