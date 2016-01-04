@@ -44,26 +44,26 @@ void worker(int id) {
         res.threshold = result;
         while(!resultQueue.push(res));
     }
-
 }
 
 int main(){
  
     m = 50;
     k = 5;
-    
+    int maxSpan = 45;
+
     //precomputig all data needed for DP recurrence.
-    int** binCoefData = precomputationUtils::precomputeBinCoefData(m,k);
-    binCoefPrefSumData = precomputationUtils::precomuteBinCoefPrefSumData(m,k,binCoefData);
-    bitMaskArrays = precomputationUtils::precomputeSpanBitMaskArrays(m,k,binCoefData);
-    maskNgs = precomputationUtils::precomputeMaskNeighbourhoodMap(m,k,bitMaskArrays, binCoefPrefSumData);
-    memoryUtils::free2DArray(binCoefData, m-1);
+    int** binCoefData = precomputationUtils::precomputeBinCoefData(maxSpan,k);
+    binCoefPrefSumData = precomputationUtils::precomuteBinCoefPrefSumData(maxSpan,k,binCoefData);
+    bitMaskArrays = precomputationUtils::precomputeSpanBitMaskArrays(maxSpan,k,binCoefData);
+    maskNgs = precomputationUtils::precomputeMaskNeighbourhoodMap(maxSpan,k,bitMaskArrays, binCoefPrefSumData);
+    memoryUtils::free2DArray(binCoefData, maxSpan-1);
 
     //file in which computed thresholds are stored.
     FILE *f = fopen("result.txt", "w"); 
 
     //each thread needs its own memory to store data while computing threshold.
-    preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[m-2], NTHREADS);
+    preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[maxSpan-2], NTHREADS);
 
     boost::thread_group workerThreads;
     
@@ -117,7 +117,7 @@ int main(){
             ullong mask = res.shape;
             if(ts > 0)
                 fprintf(f, "%lld %d\n", mask, ts);
-            for(int i = 0; i < m; i++) {
+            for(int i = 0; i < maxSpan; i++) {
                 ullong tmp = (1LL << i);
                 if((tmp & mask) == 0) {
                     ullong nextMask = mask | tmp;
@@ -151,12 +151,12 @@ int main(){
     delete(next);
     delete(current);
     delete(negatives);
-    for(int i = 0; i < m - 1; i++) {
+    for(int i = 0; i < maxSpan - 1; i++) {
         memoryUtils::free2DArray(maskNgs[i], binCoefPrefSumData[i][k]);
     }
     free(maskNgs);
-    memoryUtils::free2DArray(bitMaskArrays, m-1);
-    memoryUtils::free2DArray(binCoefPrefSumData, m-1);
+    memoryUtils::free2DArray(bitMaskArrays, maxSpan-1);
+    memoryUtils::free2DArray(binCoefPrefSumData, maxSpan-1);
 
     return 0;
 }
