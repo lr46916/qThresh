@@ -9,9 +9,6 @@ namespace precomputationUtils {
     using namespace std;
     using namespace memoryUtils;
 
-    //This method is used to compute binom coefficient arrays for each
-    //value of span ranging from 2 up to span. Results are computed for
-    //fixed value of k.
     int** precomputeBinCoefData(int span, int k) {
         
         int** result = (int**) malloc((span-1) * sizeof(int*));
@@ -28,11 +25,6 @@ namespace precomputationUtils {
         return result;
     }
 
-    //this method simply computes all prefix sums of given binon coefficeint arrays
-    //for all cases with span ranging from 2 to value of parameter span and fixed value
-    //of k (given in parameter k).
-    //@param binCoefData 2D array containing precomputed binom coefficient data arrays
-    //       for all spans ranging from 2 to value of parameter span
     int** precomuteBinCoefPrefSumData(int span, int k, int** binCoefData) {
         int** result = (int**) malloc((span-1) * sizeof(int*));
 
@@ -52,10 +44,6 @@ namespace precomputationUtils {
         return result;
     }
 
-    //Method that precomputes all bit-mask arrays for span ranging from 2 up 
-    //to value of parameter span with fixed value of k (given in parameter k).
-    //@param binCoefData 2D array containing precomputed binom coefficient data arrays
-    //       for all spans ranging from 2 to value of parameter span
     ullong** precomputeSpanBitMaskArrays(int span, int k, int** binCoefData) {
 
         ullong** result = (ullong**) malloc((span - 1) * sizeof(ullong*));
@@ -71,17 +59,6 @@ namespace precomputationUtils {
         return result;
     }
 
-    //As defined in dinamic programming recurrence for each given bit-mask (shape) there will be only
-    //two options of shapes ("neighbours") that determain sub-solutions from which we can compute next optimal threshold
-    //value.
-    //In this method we go through all bit-mask arrays (for span = 2 up to value fiven in parameter span)
-    //and for each bit-mask (shape) we compute it's two target "neighbours". We use a std map implementation to define inverse
-    //mapping from given shape (bit-mask) to its index in corresponding bit-mask array. Now for both computed
-    //shapes (bit-masks) we can read theirs indexes in corresponding bit-mask array and store that index values
-    //in our result data field.
-    //Using this precomputed data we can, one that we start running DP recurrence, for each bit-mask (shape) index
-    //can simply read its ("neighbours") indexes with a simple look-up (without need of using a map implementation
-    //to get an index from a shape(bit-mask) and finally gain more speed in DP recurrence).
     int*** precomputeMaskNeighbourhoodMap(int span, int k, ullong** bitMaskArray, int** binCoefPrefSum) {
         
         int*** result = (int***) malloc(sizeof(int**) * (span-1));

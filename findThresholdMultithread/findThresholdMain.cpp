@@ -7,9 +7,8 @@
 #include "precomputationUtils.hpp"
 #include "memoryUtils.hpp"
 
+//number of worker threads that will be used in threshold computation.
 #define NTHREADS 3
-
-using namespace memoryUtils;
 
 typedef unsigned long long ullong;
 
@@ -24,11 +23,13 @@ boost::lockfree::queue<struct Pair> resultQueue(1000);
 
 int m = -1, k = -1;
 
+//precomputed data is held globally so all threads can easely acces it.
 int** binCoefPrefSumData;
-ullong** bitMaskArrays; //= precomputeSpanBitMaskArrays(m, k);
-int*** maskNgs; //precomputeMaskNeighbourhoodMap(m,k,bitMaskArrays);
+ullong** bitMaskArrays; 
+int*** maskNgs;
 int*** preallocatedDataStorage;
 
+//Worker method. Each worker thread runs this method as long as killCond isn't received.
 void worker(int id) {
     ullong killCond = 0LL;
     while(true) {
@@ -51,35 +52,46 @@ int main(){
     m = 50;
     k = 5;
     
+    //precomputig all data needed for DP recurrence.
     int** binCoefData = precomputationUtils::precomputeBinCoefData(m,k);
     binCoefPrefSumData = precomputationUtils::precomuteBinCoefPrefSumData(m,k,binCoefData);
     bitMaskArrays = precomputationUtils::precomputeSpanBitMaskArrays(m,k,binCoefData);
     maskNgs = precomputationUtils::precomputeMaskNeighbourhoodMap(m,k,bitMaskArrays, binCoefPrefSumData);
     memoryUtils::free2DArray(binCoefData, m-1);
 
+    //file in which computed thresholds are stored.
     FILE *f = fopen("result.txt", "w"); 
 
+    //each thread needs its own memory to store data while computing threshold.
     preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[m-2], NTHREADS);
 
-    boost::thread_group workerThreads; 
-
+    boost::thread_group workerThreads;
+    
+    //creating workers...
     for(int i = 0; i < NTHREADS; i++) {
         workerThreads.create_thread(boost::bind(worker,i));
     }
-
-    std::unordered_set<ullong> *current = new std::unordered_set<ullong>(); 
-    std::unordered_set<ullong> *next = new std::unordered_set<ullong>();
     
+    //set containing all shape masks that are current targets (possible positive thresholds)
+    std::unordered_set<ullong> *current = new std::unordered_set<ullong>();
+
+    //set containing all shape masks that will be checked in next iteration computed from current shapes.
+    std::unordered_set<ullong> *next = new std::unordered_set<ullong>();
+
+    //once we find a shape with non positive threshold we want to make sure all
+    //shapes that are his supersets are ignored.
     std::unordered_set<ullong> *negatives = new std::unordered_set<ullong>();
 
+    //start with 1...
     next->insert(1LL);
 
     int counter = 0;
-    int tmpC = 0;
-
+    
+    //this loop go through all shapes (with fixed values of m and k) starting with shape that has
+    //q = 1. Then in each iteration examine all shapes with q=2, then q=3...
+    //If in current iteration (say q=q') we find a shape with threshold=0 we ignore all shapes with
+    //q = q'+1 that are super set of current shape. And with that reducing our search space.
     while(!next->empty()){
-        if(tmpC++ == 4)
-            break;
         printf("next.. size: %d, computed thresholds so far: %d\n", (int) next->size(), counter);
 
         std::unordered_set<ullong> *tmp = next;
@@ -109,9 +121,6 @@ int main(){
                 ullong tmp = (1LL << i);
                 if((tmp & mask) == 0) {
                     ullong nextMask = mask | tmp;
-                    // if(nextMask == 7) {
-                    //     printf("rootmask %lld, nextMask %lld, rootTS: %d\n", mask, nextMask, ts);
-                    // }
                     if(ts == 0) {
                         next->erase(nextMask);
                         negatives->insert(nextMask);
@@ -134,7 +143,8 @@ int main(){
     }
     
     workerThreads.join_all();
-
+    
+    fflush(f);
     fclose(f);
     
     //free everything...
