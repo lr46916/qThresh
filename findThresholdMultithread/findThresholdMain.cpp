@@ -8,7 +8,7 @@
 #include "memoryUtils.hpp"
 
 //number of worker threads that will be used in threshold computation.
-#define NTHREADS 3
+#define NTHREADS 2
 
 typedef unsigned long long ullong;
 
@@ -93,6 +93,12 @@ int main(){
     //q = q'+1 that are super set of current shape. And with that reducing our search space.
     while(!next->empty()){
         printf("next.. size: %d, computed thresholds so far: %d\n", (int) next->size(), counter);
+
+        FILE *resumeFile = fopen("resume.txt", "w");
+        for(ullong mask : *next) {
+            fprintf(resumeFile, "%lld ", mask);
+        }
+        fclose(resumeFile);
 
         std::unordered_set<ullong> *tmp = next;
         next = current;
