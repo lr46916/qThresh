@@ -8,7 +8,7 @@
 #include "memoryUtils.hpp"
 
 //number of worker threads that will be used in threshold computation.
-#define NTHREADS 2
+#define NTHREADS 3
 
 typedef unsigned long long ullong;
 
@@ -46,7 +46,7 @@ void worker(int id) {
     }
 }
 
-int main(){
+int main(int argc, char *argv[]){
  
     m = 50;
     k = 5;
@@ -60,7 +60,7 @@ int main(){
     memoryUtils::free2DArray(binCoefData, maxSpan-1);
 
     //file in which computed thresholds are stored.
-    FILE *f = fopen("result.txt", "w"); 
+    FILE *f = fopen("result.txt", "w");
 
     //each thread needs its own memory to store data while computing threshold.
     preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[maxSpan-2], NTHREADS);
@@ -78,12 +78,25 @@ int main(){
     //set containing all shape masks that will be checked in next iteration computed from current shapes.
     std::unordered_set<ullong> *next = new std::unordered_set<ullong>();
 
+    if(argc == 2) {
+        FILE *resumeFile = fopen(argv[1], "r");
+        
+        ullong tmp = 0;
+
+        while(fscanf(resumeFile, "%lld ", &tmp) == 1) {
+            next->insert(tmp);
+        }
+    } else {
+        //start with 1...
+        next->insert(1LL);
+    }
+
+
     //once we find a shape with non positive threshold we want to make sure all
     //shapes that are his supersets are ignored.
     std::unordered_set<ullong> *negatives = new std::unordered_set<ullong>();
 
-    //start with 1...
-    next->insert(1LL);
+    
 
     int counter = 0;
     
@@ -94,7 +107,7 @@ int main(){
     while(!next->empty()){
         printf("next.. size: %d, computed thresholds so far: %d\n", (int) next->size(), counter);
 
-        FILE *resumeFile = fopen("resume.txt", "w");
+        FILE *resumeFile = fopen("resumeFile.txt", "w");
         for(ullong mask : *next) {
             fprintf(resumeFile, "%lld ", mask);
         }
