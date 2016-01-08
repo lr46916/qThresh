@@ -33,5 +33,5 @@ namespace memoryUtils {
     //                         at our disposal.
     //@param numberOfThreads number of threads that will be used to compute threshold values
     //                       concurrently
-    int*** preallocateDataArraysForDP(int k, int* maxBinCoefPrefSum, int numberOfThreads); 
+    int*** preallocateDPArrays(int k, int* maxBinCoefPrefSum, int numberOfThreads); 
 }

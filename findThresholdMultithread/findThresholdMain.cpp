@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
     FILE *f = fopen("result.txt", "w");
 
     //each thread needs its own memory to store data while computing threshold.
-    preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[maxSpan-2], NTHREADS);
+    preallocatedDataStorage = memoryUtils::preallocateDPArrays(k,binCoefPrefSumData[maxSpan-2], NTHREADS);
 
     boost::thread_group workerThreads;
     
