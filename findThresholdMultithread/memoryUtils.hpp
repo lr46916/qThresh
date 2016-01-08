@@ -6,14 +6,12 @@ namespace memoryUtils {
     //@param k number of rows
     int** mallocIntArrays(int* rowSize, int k);
     
-    //Method used to free any kind of 2D data.
+    //Method used to delete any kind of 2D data.
     //@param data Memory to be freed
     //@param k number of rows
     template<typename T> void free2DArray(T **data, int k) {
-        for(int i = 0; i < k; i++) {
-            free(data[i]);
-        }
-        free(data);
+        for(int i = 0; i < k; i++) delete data[i];
+        delete data;
     }
 
     //This method is used to allocate data storage for all neighbourhood masks
