@@ -1,7 +1,7 @@
 #ifndef _BLOCKING_QUEUE_
 #define _BLOCKING_QUEUE_
 
-#include <queue>
+#include <deque>
 #include <condition_variable>
 #include <mutex>
 
@@ -14,12 +14,12 @@ class BlockingQueue {
 
 private:
   std::mutex mutex;
-  std::queue<T> queue;
+  std::deque<T> queue;
   std::condition_variable removalCond; // enforces locking on data removal ops
 
 public:
   BlockingQueue();
-  BlockingQueue(size_t size) : queue( std::queue<T>(size) ) {};
+  BlockingQueue(size_t size) : queue( std::deque<T>(size) ) {};
 
   bool empty() {
     return this->queue.empty(); 
