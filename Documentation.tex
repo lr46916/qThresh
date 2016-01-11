@@ -72,7 +72,7 @@ principles our algorithm is based on.  % Introduction text
 
 %------------------------------------------------
 
-\subsection{Algorithm description}
+\subsection{Problem description}
 
 First off, we will describe the notation used in this assignment. \textit{T} is the text file, \textit{P} is the given pattern and \textit{S} stands 
 for all the substrings in \textit{T} that match the given pattern \textit{P} within a Hamming distance of \textit{k} (number of non-matching characters). 
@@ -81,8 +81,10 @@ The goal of the q-gram filter is to reduce the number of potential matches that 
 The threshold variable \textit{t} defines the minimum number of q-gram matches between the pattern \textit{P} and 
 a substring so that the substring would be considered as a potential match. A low value of \textit{t} will result in too many potential matches, 
 while a too high value may overlook some potential matches which would make the filter lossy. Only filters that label all the matches as 
-potential matches will be considered in the assignment.
-
+potential matches will be considered in the assignment.\\
+As stated previously, this assignment will focus on gapped q-grams. For contiguous q-grams an optimal threshold can be computed with a
+simple mathematical formula, which is not true for gapped q-gram filters. In gapped q-gram filters the problem is much more complex
+because a closed form formula has not been found. Because of that we have used the dynamic algorithm found in the assignment paper.
 
 
 
