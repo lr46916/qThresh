@@ -1,25 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <set>
 #include <unordered_set>
-#include <boost/thread/thread.hpp>
-#include <boost/lockfree/queue.hpp>
+#include <thread>
+#include <vector>
 #include "findThreshold.hpp" 
 #include "precomputationUtils.hpp"
 #include "memoryUtils.hpp"
 
 //number of worker threads that will be used in threshold computation.
-#define NTHREADS 3
+#define NTHREADS 4
 
 typedef unsigned long long ullong;
-
-struct Pair {
-    ullong shape;
-    int threshold;
-};
-
-boost::lockfree::queue<ullong> workerQueue(1000);
-
-boost::lockfree::queue<struct Pair> resultQueue(1000);
 
 int m = -1, k = -1;
 
@@ -29,28 +21,34 @@ ullong** bitMaskArrays;
 int*** maskNgs;
 int*** preallocatedDataStorage;
 
+std::vector<ullong> shapeInputs;
+std::vector<char> thresholdResults;
+
 //Worker method. Each worker thread runs this method as long as killCond isn't received.
 void worker(int id) {
-    ullong killCond = 0LL;
-    while(true) {
-        ullong shape;
-        while(!workerQueue.pop(shape));
-        if(shape == killCond)
-            break;
-        int span = 64 - __builtin_clzll(shape);
-        int result = findThreshold(shape, span, m, k, maskNgs[span-2], bitMaskArrays[span-2], binCoefPrefSumData[span-2], preallocatedDataStorage[2*id], preallocatedDataStorage[2*id+1]);
-        struct Pair res;
-        res.shape = shape;
-        res.threshold = result;
-        while(!resultQueue.push(res));
+    int ind = id;
+    while(ind < (int) shapeInputs.size()) {
+        int span = 64 - __builtin_clzll(shapeInputs[ind]);
+        int result = findThreshold(shapeInputs[ind], span, m, k, maskNgs[span-2], bitMaskArrays[span-2], binCoefPrefSumData[span-2], preallocatedDataStorage[2*id], preallocatedDataStorage[2*id+1]);
+        thresholdResults[ind] = (char) result;
+        ind += NTHREADS;
     }
+    printf("threadId: %d, done\n", id);
 }
 
 int main(int argc, char *argv[]){
- 
+    
+    if(argc < 3) {
+        printf("Invalid number of paramaters.\n");
+        printf("First param -> File in which results will be stored.\n");
+        printf("Second param -> Resume file to be saved. The file in which current iteration will be stored.\n");
+        printf("Third param -> Resume file to be read. If none provided computation starts from q=1.\n");
+        exit(-1);
+    }
+
     m = 50;
     k = 5;
-    int maxSpan = 45;
+    int maxSpan = 30;
 
     //precomputig all data needed for DP recurrence.
     int** binCoefData = precomputationUtils::precomputeBinCoefData(maxSpan,k);
@@ -60,32 +58,27 @@ int main(int argc, char *argv[]){
     memoryUtils::free2DArray(binCoefData, maxSpan-1);
 
     //file in which computed thresholds are stored.
-    FILE *f = fopen("result.txt", "w");
+    FILE *f = fopen(argv[1], "w");
 
     //each thread needs its own memory to store data while computing threshold.
     preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[maxSpan-2], NTHREADS);
 
-    boost::thread_group workerThreads;
-    
-    //creating workers...
-    for(int i = 0; i < NTHREADS; i++) {
-        workerThreads.create_thread(boost::bind(worker,i));
-    }
-    
     //set containing all shape masks that are current targets (possible positive thresholds)
-    std::unordered_set<ullong> *current = new std::unordered_set<ullong>();
+    std::set<ullong> *current = new std::set<ullong>();
 
     //set containing all shape masks that will be checked in next iteration computed from current shapes.
-    std::unordered_set<ullong> *next = new std::unordered_set<ullong>();
+    std::set<ullong> *next = new std::set<ullong>();
 
-    if(argc == 2) {
-        FILE *resumeFile = fopen(argv[1], "r");
+    if(argc == 4) {
+        FILE *resumeFile = fopen(argv[3], "r");
         
         ullong tmp = 0;
 
         while(fscanf(resumeFile, "%lld ", &tmp) == 1) {
             next->insert(tmp);
         }
+
+        fclose(resumeFile);
     } else {
         //start with 1...
         next->insert(1LL);
@@ -96,7 +89,6 @@ int main(int argc, char *argv[]){
     //shapes that are his supersets are ignored.
     std::unordered_set<ullong> *negatives = new std::unordered_set<ullong>();
 
-    
 
     int counter = 0;
     
@@ -107,33 +99,44 @@ int main(int argc, char *argv[]){
     while(!next->empty()){
         printf("next.. size: %d, computed thresholds so far: %d\n", (int) next->size(), counter);
 
-        FILE *resumeFile = fopen("resumeFile.txt", "w");
+        FILE *resumeFile = fopen(argv[2], "w");
         for(ullong mask : *next) {
             fprintf(resumeFile, "%lld ", mask);
         }
         fclose(resumeFile);
 
-        std::unordered_set<ullong> *tmp = next;
+        std::set<ullong> *tmp = next;
         next = current;
         current = tmp;
 
         negatives->clear();
-
-        int c = 0;
-
-        for(ullong mask : *current) {
-            while(!workerQueue.push(mask));
-            c++;
-        }
         
-        struct Pair res;
+        shapeInputs.resize(current->size());
+        thresholdResults.resize(current->size());
+        
+        int index = 0;
+        for(ullong shapeInput : *current) {
+            shapeInputs[index++] = shapeInput;
+        }
 
-        while(c != 0) {
-            while(!resultQueue.pop(res));
-            c--;
-            int ts = res.threshold; 
-            counter++;
-            ullong mask = res.shape;
+        current->clear();
+
+        std::thread workerThreads[NTHREADS];
+
+        //creating workers...
+        for(int i = 0; i < NTHREADS; i++) {
+            workerThreads[i] = std::thread(worker, i);
+        }
+        counter += (int)shapeInputs.size();
+        
+        //calculated thresholds are stored in thresholdResults vector
+        for(int i = 0; i < NTHREADS; i++) {
+            workerThreads[i].join();
+        }
+
+        for(int i = 0; i < index; i++) {
+            ullong mask = shapeInputs[i];
+            int ts = (int) thresholdResults[i];
             if(ts > 0)
                 fprintf(f, "%lld %d\n", mask, ts);
             for(int i = 0; i < maxSpan; i++) {
@@ -149,19 +152,12 @@ int main(int argc, char *argv[]){
                         }
                     }
                 }
-                        
+                    
             }
-        } 
-
-        current->clear();
+        }
 
     }
 
-    for(int i = 0; i < NTHREADS; i++) {
-        while(!workerQueue.push(0LL));
-    }
-    
-    workerThreads.join_all();
     
     fflush(f);
     fclose(f);
