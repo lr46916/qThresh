@@ -38,17 +38,20 @@ void worker(int id) {
 
 int main(int argc, char *argv[]){
     
-    if(argc < 3) {
+    if(argc < 6) {
         printf("Invalid number of paramaters.\n");
-        printf("First param -> File in which results will be stored.\n");
-        printf("Second param -> Resume file to be saved. The file in which current iteration will be stored.\n");
-        printf("Third param -> Resume file to be read. If none provided computation starts from q=1.\n");
+        printf("First param -> integer value for parameter m.\n");
+        printf("Second param -> integer value for parameter k.\n");
+        printf("Third param -> integer value. Maximal span of a Q-gram.\n");
+        printf("Fourth param -> File in which results will be stored.\n");
+        printf("Fifth param -> Resume file to be saved. The file in which current iteration will be stored.\n");
+        printf("Sixth param -> Resume file to be read. If none provided computation starts from q=1.\n");
         exit(-1);
     }
 
-    m = 50;
-    k = 5;
-    int maxSpan = 30;
+    m = atoi(argv[1]);
+    k = atoi(argv[2]);
+    int maxSpan = atoi(argv[3]);
 
     //precomputig all data needed for DP recurrence.
     int** binCoefData = precomputationUtils::precomputeBinCoefData(maxSpan,k);
@@ -58,7 +61,7 @@ int main(int argc, char *argv[]){
     memoryUtils::free2DArray(binCoefData, maxSpan-1);
 
     //file in which computed thresholds are stored.
-    FILE *f = fopen(argv[1], "w");
+    FILE *f = fopen(argv[4], "w");
 
     //each thread needs its own memory to store data while computing threshold.
     preallocatedDataStorage = memoryUtils::preallocateDataArraysForDP(k,binCoefPrefSumData[maxSpan-2], NTHREADS);
@@ -69,8 +72,8 @@ int main(int argc, char *argv[]){
     //set containing all shape masks that will be checked in next iteration computed from current shapes.
     std::set<ullong> *next = new std::set<ullong>();
 
-    if(argc == 4) {
-        FILE *resumeFile = fopen(argv[3], "r");
+    if(argc == 7) {
+        FILE *resumeFile = fopen(argv[6], "r");
         
         ullong tmp = 0;
 
@@ -99,7 +102,7 @@ int main(int argc, char *argv[]){
     while(!next->empty()){
         printf("next.. size: %d, computed thresholds so far: %d\n", (int) next->size(), counter);
 
-        FILE *resumeFile = fopen(argv[2], "w");
+        FILE *resumeFile = fopen(argv[5], "w");
         for(ullong mask : *next) {
             fprintf(resumeFile, "%lld ", mask);
         }
