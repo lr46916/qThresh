@@ -1,4 +1,3 @@
-
 %----------------------------------------------------------------------------------------
 %	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
@@ -17,6 +16,14 @@
 \usepackage{sectsty} % Allows customizing section commands
 \allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
 
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[]{algorithm2e}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
 \usepackage{fancyhdr} % Custom headers and footers
 \pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
 \fancyhead{} % No page header - if you want one, create it in the same way as the footers below
@@ -32,6 +39,7 @@
 \numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
 
 \setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+
 
 %----------------------------------------------------------------------------------------
 %	TITLE SECTION
@@ -89,5 +97,41 @@ because a closed form formula has not been found. Because of that we have used t
 
 
 %----------------------------------------------------------------------------------------
+
+\subsection{Pruning method}
+
+Even with this reasnobly fast dinamic programming algorithm computing all possible gapped Q-grams with positive threshold for parameters $m=50,\ k=\{4,5\}$ is still a challenging task. Using brute force method, calculating threchold for all shapes in that have $m=50$ and $k=\{4,5\}$ and leaving only those for which positive threshold is computed, would leave us with search space of $2^{50}$ thresholds to compute. Since that kind of search space is clearly unfeasable we use fallowing lemma as
+stated in~\cite{njihovPaper}. 
+
+%does not work for whatever reason??
+\begin{lemma}
+    \label{subSetLemma}
+    If $Q' \subseteq Q$ then $threshold_{Q'}(m,k) \geq threshold_{Q}(m,k)$
+\end{lemma}
+
+Using lemma~\ref{subSetLemma} we propose simple pruning technique which we used while computing Q-shapes with positive thresholds.
+Say that we have a set $Set_{current}$ which contains all Q-grams with size $q$, and we know values of thresholds for each Q-gram in the set. Next we define two empty sets, $Set_{next}$ and $Set_{forbbiden}$, which will contain Q-grams of size $q+1$. Now for each Q-gram, $Q_{i}$ in $Set_{current}$ run the following recurrence.
+
+% I have no idea how to write this properly
+ \begin{algorithmic}
+     \FOR{each Q-gram $Q_{i} \in Set_{current}$}
+         \STATE{ \FOR{ $i$ \in $\{2,\dots,m\}$ }
+				 \STATE { $Q_{i}' = Q_{i} \cup i$
+             	 	\IF{ threshold($Q_i$) &=&  0 }
+					\STATE { $Set_{next} = Set_{next} \setminus Q_{i}'$
+	                  $Set_{forbbiden} = Set_{forbbiden} \cup Q_{i}'$ }
+                    \ELSIF { $Q_{i}' \notin $Set_{forbbiden}$ }
+                     \STATE { $Set_{next} = Set_{next} \cup Q_{i}'$ }
+                    \ENDIF
+                    }
+         \ENDFOR }
+     \ENDFOR
+ \end{algorithmic}
+
+Using this simple pruning method we\dots
+
+
+%----------------------------------------------------------------------------------------
+
 
 \end{document}
