@@ -112,7 +112,6 @@ of $2^{50} (\approx 10^{15}$) thresholds to compute. Since that kind of search
 space is clearly unfeasible we use fallowing lemma as stated
 in~\cite{njihovPaper} to reduce search space.
 
-%does not work for whatever reason??
 \begin{lemma}
     \label{subSetLemma}
     If $Q' \subseteq Q$ then $threshold_{Q'}(m,k) \geq threshold_{Q}(m,k)$
@@ -195,10 +194,11 @@ value of span for all considered Q-grams}
 Using this simple pruning method we drastically reduced search space by several
 orders of magnitude. Leaving about $10^{8}$ thresholds to compute in order to
 acquire all Q-shapes with positive thresholds with $m=50$ and $k=\{4,5\}$.
-Results obtained with this method are showed in tables~\ref{tab:res1}
-and~\ref{tab:res2}. 
+
 %TODO mozda prebacit u results ili tako nesto
-We note that tables do not contain threshold values for all
+
+Results obtained with this method are showed in tables~\ref{tab:res1}
+and~\ref{tab:res2}. We note that tables do not contain threshold values for all
 possible shapes. Even with this effective pruning technique number of thresholds
 that has to be computed is still large. Due to the time limit and
 shortage of computational power results are obtained with parameter $MS = 30$
