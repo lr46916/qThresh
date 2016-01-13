@@ -63,15 +63,16 @@
 
 \maketitle % Print the title
 
+
 %----------------------------------------------------------------------------------------
 %	PROBLEM 1
 %----------------------------------------------------------------------------------------
 
 \section{Introduction into the problem}
 
-In this project we have analyzed and recreated a paper on the topic of finding optimal thresholds for q-gram filters. Q-gram filters
-are used for matching substrings of length \textit{q} in a text with substrings in a given pattern. In addition, the paper we are recreating
-uses gapped q-grams, which allow for discontinuous text substrings. Gapped q-grams were shown to be more efficient than 
+The topic of this paper is finding optimal thresholds for q-gram filters. Q-gram filters
+are used for matching substrings of length \textit{q} in a text with substrings in a given pattern. In addition, we are focusing on
+gapped q-grams, which allow for discontinuous text substrings. Gapped q-grams were shown to be more efficient than 
 contiguous q-grams in the right conditions. However, computing an optimal threshold for those filters is also more difficult. 
 Our project was done in C++ and can run on the bio-linux platform.
 In the next section we will describe the process we used in our computation. Before that, we will describe some of the main
@@ -92,7 +93,11 @@ while a too high value may overlook some potential matches which would make the 
 potential matches will be considered in the assignment.\\
 As stated previously, this assignment will focus on gapped q-grams. For contiguous q-grams an optimal threshold can be computed with a
 simple mathematical formula, which is not true for gapped q-gram filters. In gapped q-gram filters the problem is much more complex
-because a closed form formula has not been found. Because of that we have used the dynamic algorithm found in the assignment paper.
+because a closed form formula has not been found so we have used the dynamic algorithm to find the optimal treshold.\\
+Because we are dealing with gapped q-grams, which we represent with sets, we will have to define a \textit{q-shape} and
+ some additional terms. The size of a set Q is the number of indexes that it has, while the span is the distance between te lowest
+and highest member of the set, or in other words \textit{span(Q) = maxQ - minQ + 1} . The \textit{(q,s)-shape} of a q-gram is a set Q with it's
+size \textit{q} and span \textit{s}. For example, if we have a shape Q=\{0,1,4,6,7\} it's size is 5 and it's span is 8 so it is a (5,8)-shape.
 
 
 
@@ -127,11 +132,6 @@ Say that we have a set $Set_{current}$ which contains all Q-grams with size $q$,
          \ENDFOR }
      \ENDFOR
  \end{algorithmic}
-
 Using this simple pruning method we\dots
-
-
 %----------------------------------------------------------------------------------------
-
-
 \end{document}
