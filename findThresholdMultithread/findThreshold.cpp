@@ -45,10 +45,6 @@ int findThreshold(ullong shapeMask, int span, int m, int k, int** maskNgs, unsig
                 if ((mask & lastElemMask) == 0) {
                     targetJ--;
                 }
-                if(targetJ == -1) {
-                    //TODO can be removed this will never happen
-                    continue;
-                }
                                
                 ullong fullMask = mask | 1LL;
 
@@ -73,14 +69,7 @@ int findThreshold(ullong shapeMask, int span, int m, int k, int** maskNgs, unsig
                 }
 
                 if(nextVal != INT_MAX){
-                    //printf("update with hit %d\n", hit);    
                     nextResult[j][l] = nextVal;// + hit;   
-                } else {
-                    //TODO just for debugging. This case should never be triggered
-                    printf("ERROR\n");
-                    printf("%d %d\n", maskInd, maskInd2);
-                    printf("mask %lld, mask2: %lld, parent: %lld \n", bitMaskArray[maskInd], bitMaskArray[maskInd2], mask);
-                    exit(-1);
                 } 
             }
 
