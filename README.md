@@ -24,8 +24,8 @@ Running
 To run the program You need to execute "findAllThresholds" executable file You previously compiled. In order to run a program several arguments needs to be passed trough command line. 
 
 There are 3 important parameters for this problem: m, k and span.
-m - represents size of a pattern
-k - hamming distance
+m - represents size of a pattern,
+k - hamming distance,
 span - only Q-grams with span smaller (or equal) to this parameter value will be considered in search space
 
 Command line arguments to run the program are as follows:
@@ -62,6 +62,7 @@ Result format
 Results file will contain N lines. One per each shape for which program calculated positive threshold (>= 1).
 Each line consists of two numbers:
 first -> shape represented as a long value
+
 second -> threshold of that shape
 
 In order to get more (humanly) readable file format we added a python script "solutionFormatter.py" which is located at a root of this project.
@@ -74,7 +75,9 @@ Example of using "solutionFormatter.py" script:
 python solutionFormatter.py results.txt resultsPretty.txt t
 
 First command line argument is a file which contains results that You wish to reformat.
+
 Second command line argument is a file in which reforamtted results will be stored.
+
 Third command line argument is a key which will be used to sort shapes before saving them to output file.
 
 There are 3 options: t, s and q.
