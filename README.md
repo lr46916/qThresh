@@ -29,11 +29,17 @@ k - hamming distance
 span - only Q-grams with span smaller (or equal) to this parameter value will be considered in search space
 
 Command line arguments to run the program are as follows:
+
 First param -> integer value for parameter m.
+
 Second param -> integer value for parameter k.
+
 Third param -> integer value. Maximal span of a Q-gram.
+
 Fourth param -> File in which results will be stored.
+
 Fifth param -> Resume file to be saved. The file in which current iteration will be stored.
+
 Sixth param -> Resume file to be read. If none provided computation starts from q=1.
 
 Example
@@ -70,8 +76,12 @@ python solutionFormatter.py results.txt resultsPretty.txt t
 First command line argument is a file which contains results that You wish to reformat.
 Second command line argument is a file in which reforamtted results will be stored.
 Third command line argument is a key which will be used to sort shapes before saving them to output file.
+
 There are 3 options: t, s and q.
+
 Option t - sorts them descendingly by shape threshold values
+
 Option s - sorts them ascendingly by shape span values
+
 Option q - sorts then ascendingly by shape q values (shape size)
 
