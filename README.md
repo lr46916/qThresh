@@ -22,26 +22,26 @@ The program has been tested to work on both Linux and Windows operating systems.
 Running
 ---------------------------------------------------------------------
 
-To run the program You need to execute "findAllThresholds" executable file You previously compiled. In order to run a program several arguments needs to be passed trough command line. 
+To run the program You need to execute the previously compiled executable, named `findAllThresholds`. In order to run a program several arguments needs to be passed trough command line. 
 
 There are 3 important parameters for this problem: m, k and span.
-m - represents size of a pattern,
-k - hamming distance,
-span - only Q-grams with span smaller (or equal) to this parameter value will be considered in search space
+`m` - the size of the search pattern,
+`k` - the hamming distance between the pattern and matches,
+`span` - only q-grams with span smaller (or equal) to this parameter value will be considered in search space
 
 Command line arguments to run the program are as follows:
 
-First param -> integer value for parameter m.
+First param -> integer value for parameter `m`.
 
-Second param -> integer value for parameter k.
+Second param -> integer value for parameter `k`.
 
-Third param -> integer value. Maximal span of a Q-gram.
+Third param -> integer value. Maximal span of a q-gram.
 
 Fourth param -> File in which results will be stored.
 
 Fifth param -> Resume file to be saved. The file in which current iteration will be stored.
 
-Sixth param -> Resume file to be read. If none provided computation starts from q=1.
+Sixth param -> Resume file to be read. If none provided computation starts from `q`=1.
 
 Example
 ---------------------------------------------------------------------
@@ -79,11 +79,11 @@ Second command line argument is a file in which reforamtted results will be stor
 
 Third command line argument is a key (option) which will be used to sort shapes before saving them to output file.
 
-There are 3 key options: t, s and q:
+There are 3 key options: `t`, `s` and `q`:
 
-  t - sorts shapes by threshold values, descending
+  `t` - sorts shapes by threshold values, descending
 
-  s - sorts shapes by span values, ascending
+  `s` - sorts shapes by span values, ascending
 
-  q - sorts shapes by q values (shape size), ascending
+  `q` - sorts shapes by q values (shape size), ascending
 
