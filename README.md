@@ -79,7 +79,10 @@ Second command line argument is a file in which reforamtted results will be stor
 Third command line argument is a key (option) which will be used to sort shapes before saving them to output file.
 
 There are 3 key options: t, s and q:
+
   t - sorts shapes by threshold values, descending
+
   s - sorts shapes by span values, ascending
+
   q - sorts shapes by q values (shape size), ascending
 
