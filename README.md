@@ -6,13 +6,12 @@ http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.13.5942&rep=rep1&type=p
 Compiling
 ---------------------------------------------------------------------
 
-In order to compile out program (to get an executable) position yourself in 
-"findThresholdMultithred" folder and simply run "make all" command.
+In order to compile out program (to get an executable) position yourself in the folder named
+`findThresholdMultithread` and invoke `make`.
 
 (for more information about make command follow "http://www.tutorialspoint.com/unix_commands/make.htm")
 
-g++ compiler (and standard C++ std library) there are no other dependencies needed to compile the program.
-
+The only dependency required to compile the program is a working version of g++ (https://gcc.gnu.org/onlinedocs/gcc/G_002b_002b-and-GCC.html) which supports the C++11 standard.
 
 Once compilation is complete you should see the executable, named `findAllThresholds`.
 
