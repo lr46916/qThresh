@@ -61,30 +61,25 @@ Result format
 
 Results file will contain N lines. One per each shape for which program calculated positive threshold (>= 1).
 Each line consists of two numbers:
-first -> shape represented as a long value
+  first - shape represented as a long value (1 represents a matching character, 0 a gap)
+  second - threshold of that shape
 
-second -> threshold of that shape
-
-In order to get more (humanly) readable file format we added a python script "solutionFormatter.py" which is located at a root of this project.
+In order to obtain a more (humanly) readable file format we added a python script "solutionFormatter.py" which is located at a root of this project.
 
 Now each shape is represented as a string of "#" and "-" symbol.
-Symbol "#" indicates that shape includes character on that position and "-" indicates a gap.
+Symbol "#" indicates a character that will be considered for matching on that position and "-" indicates a gap.
 
 Example of using "solutionFormatter.py" script:
+  python solutionFormatter.py results.txt resultsPretty.txt t
 
-python solutionFormatter.py results.txt resultsPretty.txt t
-
-First command line argument is a file which contains results that You wish to reformat.
+First command line argument is a file which contains results which are to be reformatted
 
 Second command line argument is a file in which reforamtted results will be stored.
 
-Third command line argument is a key which will be used to sort shapes before saving them to output file.
+Third command line argument is a key (option) which will be used to sort shapes before saving them to output file.
 
-There are 3 options: t, s and q.
-
-Option t - sorts them descendingly by shape threshold values
-
-Option s - sorts them ascendingly by shape span values
-
-Option q - sorts then ascendingly by shape q values (shape size)
+There are 3 key options: t, s and q:
+  t - sorts shapes by threshold values, descending
+  s - sorts shapes by span values, ascending
+  q - sorts shapes by q values (shape size), ascending
 
