@@ -24,7 +24,7 @@ Running
 
 To run the program You need to execute the previously compiled executable, named `findAllThresholds`. In order to run a program several arguments needs to be passed trough command line. 
 
-There are 3 important parameters for this problem: m, k and span.
+There are 3 important parameters for this problem: `m`, `k` and `span`.
 `m` - the size of the search pattern,
 `k` - the hamming distance between the pattern and matches,
 `span` - only q-grams with span smaller (or equal) to this parameter value will be considered in search space
@@ -48,7 +48,7 @@ Example
 
 To start computing all positive thresholds for m=50, k=5 and span=20 run:
 
-./findAllThresholds 50 5 20 results.txt resume.txt
+`./findAllThresholds 50 5 20 results.txt resume.txt`
 
 Once computation is complete results will be stored in "results.txt" file.
 More about results file format can be found later in this README file.
@@ -65,7 +65,7 @@ Each line consists of two numbers:
   first - shape represented as a long value (1 represents a matching character, 0 a gap)
   second - threshold of that shape
 
-In order to obtain a more (humanly) readable file format we added a python script "solutionFormatter.py" which is located at a root of this project.
+In order to obtain a more (humanly) readable file format we added a python script, `solutionFormatter.py`.
 
 Now each shape is represented as a string of "#" and "-" symbol.
 Symbol "#" indicates a character that will be considered for matching on that position and "-" indicates a gap.
