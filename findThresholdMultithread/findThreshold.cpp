@@ -23,7 +23,7 @@ void fill(int** data, int* rowSize, int k, int value) {
 int findThreshold(ullong shapeMask, int span, int m, int k, int** maskNgs, unsigned long long *bitMaskArray, int* binCoefPrefSum, int** currentResult, int** nextResult) {
 
     if(span == 1) {
-        return m - 1;
+        return m - k;
     }
 
     ullong lastElemMask = 1LL << (span - 1);
