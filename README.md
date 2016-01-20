@@ -14,7 +14,9 @@ In order to compile out program (to get an executable) position yourself in
 g++ compiler (and standard C++ std library) there are no other dependencies needed to compile the program.
 
 
-Once compilation is complete you should have "findAllThresholds" executable.
+Once compilation is complete you should see the executable, named `findAllThresholds`.
+
+The program has been tested to work on both Linux and Windows operating systems.
 
 ---------------------------------------------------------------------
 
