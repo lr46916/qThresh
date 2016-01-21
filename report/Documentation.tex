@@ -149,13 +149,13 @@ When encountering a problem (a set of parameters $i$, $j$ and $M$) which doesn't
 
 \subsection{Asymptotic complexity}
 \label{subsec:complexity}
-The dynamic programming approach significantly reduces asymptotic time complexity by eliminating $\mathcal{O}(2^m)$ as a factor, reducing it to $\mathcal{O}(m)$.
+The dynamic programming approach significantly reduces asymptotic time complexity by eliminating $\mathcal{O}(2^s)$ as a factor, reducing it to $\mathcal{O}(m)$.
 Solving a problem based on two subproblems is done in $\mathcal{O}(1)$ with a single comparison of the subproblems' solutions ($\min$). 
 In order to compute $t_Q(m, k)$, one needs to compute $t_Q(m, k, M)$, for all valid values of $M$. \\
 
-For given $m$ and $k$ on a $q$-gram of span $s$, there are $\sum_{e = 0}^k {s - 1 \choose e}$ possible arrangements of $k$ mismatches on $(s - 1)$ positions (complementary to sets $M$), which is $\mathcal{O}(2^k)$ \footnote{the authors provide tighter bounds for both time and space complexity using the sum of binomial coefficients \cite{njihovPaper}}. This ultimately leads to asymptotic time complexity of $\mathcal{O}(mk^2 2^k)$, due to our set operations on $M$ (except copying) being $\mathcal{O}(1)$, whereas copying is done in $\mathcal{O}(k)$ time, which accounts for the additional factor $\mathcal{O}(k)$. Different types of sets (possibly purely functional reference-based sets) would account for different, perhaps improved asymptotic time complexities. 
+For given $m$ and $k$ on a $q$-gram of span $s$, there are $\sum_{e = 0}^k {s - 1 \choose e}$ possible arrangements of $k$ mismatches on $(s - 1)$ positions (complementary to sets $M$), which is $\mathcal{O}(2^s)$ \footnote{the authors provide tighter bounds for both time and space complexity using the sum of binomial coefficients \cite{njihovPaper}}. This ultimately leads to asymptotic time complexity of $\mathcal{O}(mk2^s)$, due to our set operations on $M$ (except copying) being $\mathcal{O}(1)$, whereas copying is done in $\mathcal{O}(k)$ time, which accounts for the additional factor $\mathcal{O}(k)$. Different types of sets (possibly purely functional reference-based sets) would account for different, perhaps improved asymptotic time complexities. 
 
-We avoid memorizing the whole three-dimensional dynamic programming array, and only keep each $i$-row and $(i - 1)$-row instead, because we ultimately only need to compute the row $t_Q(i, *, *)$. This leads to space complexity of $\mathcal{O}(k^22^k)$. The additional $\mathcal{O}(k)$ factor comes from sets used to represent matches ($M$).  
+We avoid memorizing the whole three-dimensional dynamic programming array, and only keep each $i$-row and $(i - 1)$-row instead, because we ultimately only need to compute the row $t_Q(i, *, *)$. This leads to space complexity of $\mathcal{O}(k2^s)$. The additional $\mathcal{O}(k)$ factor comes from sets used to represent matches ($M$).  
 
 
 
